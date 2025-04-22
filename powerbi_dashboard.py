@@ -1,5 +1,3 @@
-# Save this in a separate Colab cell
-%%writefile powerbi_dashboard.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
