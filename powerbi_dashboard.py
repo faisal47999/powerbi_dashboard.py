@@ -1,41 +1,23 @@
+%%writefile powerbi_dashboard.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 from io import BytesIO
-from pyngrok import ngrok
 import re
 
-# Set page configuration for Power BI-like look
+# Set page configuration
 st.set_page_config(page_title="Power BI Style Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # CSS for Power BI-like styling
 st.markdown("""
 <style>
-    .sidebar .sidebar-content {
-        background-color: #2e2e2e;
-        color: white;
-    }
-    .stButton>button {
-        background-color: #4CAF50;
-        color: white;
-        border-radius: 5px;
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    .stButton>button:hover {
-        background-color: #45a049;
-    }
-    .main .block-container {
-        background-color: #1e1e1e;
-        padding: 20px;
-    }
-    .stMetric {
-        background-color: #333333;
-        padding: 10px;
-        border-radius: 5px;
-    }
+    .sidebar .sidebar-content { background-color: #2e2e2e; color: white; }
+    .stButton>button { background-color: #4CAF50; color: white; border-radius: 5px; width: 100%; margin-bottom: 10px; }
+    .stButton>button:hover { background-color: #45a049; }
+    .main .block-container { background-color: #1e1e1e; padding: 20px; }
+    .stMetric { background-color: #333333; padding: 10px; border-radius: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -54,7 +36,7 @@ def load_data(uploaded_file):
                     pass
         return df
     except Exception as e:
-        st.error(f"Error reading file: {e}")
+        st.error(f"Error reading CSV: {e}")
         return None
 
 # Function to analyze columns
@@ -67,7 +49,7 @@ def analyze_columns(df):
             column_info["date"].append(col)
         elif pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_categorical_dtype(df[col]):
             unique_ratio = len(df[col].unique()) / len(df[col])
-            if unique_ratio < 0.1:  # Less than 10% unique values = categorical
+            if unique_ratio < 0.1:
                 column_info["categorical"].append(col)
             else:
                 column_info["text"].append(col)
@@ -76,7 +58,7 @@ def analyze_columns(df):
 # Function to create automatic charts
 def create_auto_charts(df, column_info, filtered_df, selected_filters):
     st.subheader("Automatic Visualizations")
-    cols = st.columns(2)  # Power BI-like tile layout
+    cols = st.columns(2)
     chart_count = 0
 
     if column_info["date"] and column_info["numeric"]:
@@ -91,7 +73,7 @@ def create_auto_charts(df, column_info, filtered_df, selected_filters):
             fig.update_traces(mode="lines+markers", hovertemplate="%{x}: %{y}")
             st.plotly_chart(fig, use_container_width=True, key=f"auto_line_{chart_count}")
         chart_count += 1
-    
+
     if column_info["categorical"] and column_info["numeric"]:
         with cols[chart_count % 2]:
             cat_col = column_info["categorical"][0]
@@ -104,7 +86,7 @@ def create_auto_charts(df, column_info, filtered_df, selected_filters):
             fig.update_traces(hovertemplate="%{x}: %{y}")
             st.plotly_chart(fig, use_container_width=True, key=f"auto_bar_{chart_count}")
         chart_count += 1
-    
+
     if column_info["categorical"]:
         with cols[chart_count % 2]:
             cat_col = column_info["categorical"][0]
@@ -146,7 +128,7 @@ def parse_search_command(command, df, column_info):
         if chart in command:
             selected_chart = chart
             break
-    
+
     for col in df.columns:
         if col.lower() in command:
             if col in column_info["numeric"] and not y_col:
@@ -182,7 +164,7 @@ def create_chart(df, chart_type, x_col, y_col, color_col, key_prefix="custom"):
         else:
             st.warning("Invalid chart type.")
             return None
-        
+
         fig.update_layout(template="plotly_dark")
         fig.update_traces(hovertemplate="%{x}: %{y}")
         return fig
@@ -196,7 +178,7 @@ def to_csv(df):
     df.to_csv(output, index=False)
     return output.getvalue()
 
-# Initialize session state for filters
+# Initialize session state
 if "filters" not in st.session_state:
     st.session_state.filters = {}
 if "selected_chart" not in st.session_state:
@@ -204,7 +186,7 @@ if "selected_chart" not in st.session_state:
 if "chart_params" not in st.session_state:
     st.session_state.chart_params = {}
 
-# Sidebar for Power BI-like visuals pane
+# Sidebar
 st.sidebar.header("Visuals")
 st.sidebar.markdown("**Select Visualization**")
 chart_types = [
@@ -220,19 +202,19 @@ for label, chart_type in chart_types:
     if st.sidebar.button(label, key=f"visual_{chart_type}"):
         st.session_state.selected_chart = chart_type
 
-# Sidebar for data upload
 st.sidebar.header("Data")
 uploaded_file = st.sidebar.file_uploader("Upload CSV", type="csv")
 
 # Load data
 df = load_data(uploaded_file)
 if df is None:
+    st.error("No data loaded. Please upload a valid CSV file.")
     st.stop()
 
 # Analyze columns
 column_info = analyze_columns(df)
 
-# Sidebar for filters
+# Sidebar filters
 st.sidebar.subheader("Filters")
 if column_info["categorical"]:
     for cat_col in column_info["categorical"]:
@@ -297,19 +279,19 @@ if column_info["numeric"]:
 # Automatic charts
 create_auto_charts(df, column_info, filtered_df, st.session_state.filters)
 
-# Custom visualizations from sidebar icons
+# Custom visualizations
 if st.session_state.selected_chart:
     st.subheader("Selected Visualization")
     x_axis = st.selectbox("Select X-Axis", options=df.columns, key="x_axis")
     y_axis = st.selectbox("Select Y-Axis (Numeric)", options=column_info["numeric"] + ["None"], key="y_axis")
     color_col = st.selectbox("Select Color (Optional)", options=["None"] + column_info["categorical"], key="color_col")
-    
+
     if x_axis and y_axis != "None":
         fig = create_chart(filtered_df, st.session_state.selected_chart, x_axis, y_axis, color_col)
         if fig:
             st.plotly_chart(fig, use_container_width=True, key="selected_chart")
 
-# Download filtered data
+# Download data
 st.subheader("Download Data")
 csv = to_csv(filtered_df)
 st.download_button(
@@ -322,4 +304,4 @@ st.download_button(
 
 # Footer
 st.markdown("---")
-st.markdown("Developed by [Your Name] | Data Scientist & Developer | Connect on [LinkedIn/GitHub]")
+st.markdown("Developed by [Your Name] | Data Scientist & Developer")
