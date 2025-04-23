@@ -1,3 +1,4 @@
+%%writefile powerbi_dashboard.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -379,7 +380,7 @@ create_auto_charts(df, column_info, filtered_df, st.session_state.filters, st.se
 if st.session_state.selected_chart and filtered_df is not None:
     st.subheader("Selected Visualization")
     x_axis = st.selectbox("Select X-Axis", options=df.columns, key="x_axis")
-    y_axis = st.selectbox("Select Y-Axis (Numeric)", options=column_info["numeric"] + ["None"], key="y_axis")
+    y_axis = st.selectbox("Select Y-Axis (Numeric Oven)", options=column_info["numeric"] + ["None"], key="y_axis")
     color_col = st.selectbox("Select Color (Optional)", options=["None"] + column_info["categorical"], key="color_col")
 
     if x_axis and y_axis != "None":
