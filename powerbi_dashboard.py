@@ -3,15 +3,24 @@ import numpy as np
 import librosa
 import soundfile as sf
 import noisereduce as nr
-from scipy.signal import convolve
+from scipy.signal import convolve, butter, lfilter
+import matplotlib.pyplot as plt
 import io
 import os
 import uuid
+import warnings
+
+# Suppress warnings for cleaner output
+warnings.filterwarnings("ignore")
 
 # Function to load audio
 def load_audio(file):
-    audio, sr = librosa.load(file, sr=None)
-    return audio, sr
+    try:
+        audio, sr = librosa.load(file, sr=None)
+        return audio, sr
+    except Exception as e:
+        st.error(f"Error loading audio: {str(e)}")
+        return None, None
 
 # Function to save audio to bytes for download
 def save_audio(audio, sr):
@@ -21,30 +30,76 @@ def save_audio(audio, sr):
     return buffer
 
 # Noise reduction
-def reduce_noise(audio, sr):
-    reduced_audio = nr.reduce_noise(y=audio, sr=sr, stationary=False)
-    return reduced_audio
+def reduce_noise(audio, sr, intensity=0.5):
+    try:
+        reduced_audio = nr.reduce_noise(y=audio, sr=sr, stationary=False, prop_decrease=intensity)
+        return reduced_audio
+    except Exception as e:
+        st.error(f"Error in noise reduction: {str(e)}")
+        return audio
 
 # Pitch shift
 def pitch_shift(audio, sr, n_steps):
-    return librosa.effects.pitch_shift(audio, sr=sr, n_steps=n_steps)
+    try:
+        return librosa.effects.pitch_shift(audio, sr=sr, n_steps=n_steps)
+    except Exception as e:
+        st.error(f"Error in pitch shift: {str(e)}")
+        return audio
 
 # Tempo change
 def change_tempo(audio, sr, rate):
-    return librosa.effects.time_stretch(audio, rate=rate)
+    try:
+        return librosa.effects.time_stretch(audio, rate=rate)
+    except Exception as e:
+        st.error(f"Error in tempo change: {str(e)}")
+        return audio
 
-# Reverb effect (simple convolution with impulse response)
+# Reverb effect
 def apply_reverb(audio, sr, reverb_intensity):
-    # Create a simple exponential decay impulse response
-    decay = np.exp(-np.linspace(0, 5, int(sr * 0.5)))
-    impulse_response = decay * reverb_intensity
-    impulse_response = np.concatenate([impulse_response, np.zeros(len(audio) - len(impulse_response))])
-    audio_reverb = convolve(audio, impulse_response, mode='same')
-    return audio_reverb / np.max(np.abs(audio_reverb))
+    try:
+        decay = np.exp(-np.linspace(0, 5, int(sr * 0.5)))
+        impulse_response = decay * reverb_intensity
+        impulse_response = np.concatenate([impulse_response, np.zeros(len(audio) - len(impulse_response))])
+        audio_reverb = convolve(audio, impulse_response, mode='same')
+        return audio_reverb / np.max(np.abs(audio_reverb))
+    except Exception as e:
+        st.error(f"Error in reverb: {str(e)}")
+        return audio
+
+# Equalizer (bass/treble boost)
+def apply_equalizer(audio, sr, bass_gain=0.0, treble_gain=0.0):
+    try:
+        # Bass filter (low-pass, boost frequencies < 200 Hz)
+        if bass_gain != 0:
+            b, a = butter(4, 200 / (sr / 2), btype='low')
+            audio = lfilter(b, a, audio) * (1 + bass_gain)
+        
+        # Treble filter (high-pass, boost frequencies > 2000 Hz)
+        if treble_gain != 0:
+            b, a = butter(4, 2000 / (sr / 2), btype='high')
+            audio = lfilter(b, a, audio) * (1 + treble_gain)
+        
+        return audio / np.max(np.abs(audio))
+    except Exception as e:
+        st.error(f"Error in equalizer: {str(e)}")
+        return audio
+
+# Plot waveform
+def plot_waveform(audio, sr, title="Waveform"):
+    plt.figure(figsize=(10, 4))
+    librosa.display.waveshow(audio, sr=sr)
+    plt.title(title)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    plt.close()
+    return buffer
 
 # Streamlit App
-st.title("Voice Editor - Naat & Song Audio Processor")
-st.write("Apni audio file upload karo aur effects apply karo!")
+st.title("Voice Editor - Professional Audio Processor")
+st.write("Apni naat ya song ki audio upload karo aur effects apply karo!")
 
 # File uploader
 uploaded_file = st.file_uploader("Audio file upload karo (WAV format)", type=["wav"])
@@ -52,60 +107,70 @@ uploaded_file = st.file_uploader("Audio file upload karo (WAV format)", type=["w
 if uploaded_file is not None:
     # Load audio
     audio, sr = load_audio(uploaded_file)
+    if audio is None:
+        st.stop()
+
+    # Display original waveform
+    st.image(plot_waveform(audio, sr, "Original Audio Waveform"), use_column_width=True)
     st.audio(uploaded_file, format='audio/wav')
     st.write("Original Audio ⬆️")
 
-    # Noise reduction toggle
-    noise_reduction = st.checkbox("Noise Reduction (Background noise hatao)", value=True)
+    # Effect controls
+    st.subheader("Audio Effects")
+    col1, col2 = st.columns(2)
 
-    # Pitch shift slider
-    pitch_steps = st.slider("Pitch Adjust (High/Low voice)", -5.0, 5.0, 0.0, 0.1)
+    with col1:
+        noise_reduction = st.checkbox("Noise Reduction", value=True)
+        noise_intensity = st.slider("Noise Reduction Intensity", 0.1, 1.0, 0.5, 0.1)
+        pitch_steps = st.slider("Pitch Adjust (High/Low)", -5.0, 5.0, 0.0, 0.1)
+        tempo_rate = st.slider("Tempo Adjust (Speed)", 0.5, 2.0, 1.0, 0.1)
 
-    # Tempo slider
-    tempo_rate = st.slider("Tempo Adjust (Speed badhao/kam karo)", 0.5, 2.0, 1.0, 0.1)
-
-    # Reverb slider
-    reverb_intensity = st.slider("Reverb (Echo effect)", 0.0, 1.0, 0.0, 0.1)
+    with col2:
+        reverb_intensity = st.slider("Reverb (Echo)", 0.0, 1.0, 0.0, 0.1)
+        bass_gain = st.slider("Bass Boost", -0.5, 0.5, 0.0, 0.1)
+        treble_gain = st.slider("Treble Boost", -0.5, 0.5, 0.0, 0.1)
 
     # Process button
     if st.button("Audio Process Karo"):
-        processed_audio = audio.copy()
+        with st.spinner("Processing audio..."):
+            processed_audio = audio.copy()
 
-        # Apply noise reduction
-        if noise_reduction:
-            with st.spinner("Noise hata rahe hain..."):
-                processed_audio = reduce_noise(processed_audio, sr)
+            # Apply noise reduction
+            if noise_reduction:
+                processed_audio = reduce_noise(processed_audio, sr, noise_intensity)
 
-        # Apply pitch shift
-        if pitch_steps != 0:
-            with st.spinner("Pitch adjust kar rahe hain..."):
+            # Apply pitch shift
+            if pitch_steps != 0:
                 processed_audio = pitch_shift(processed_audio, sr, pitch_steps)
 
-        # Apply tempo change
-        if tempo_rate != 1.0:
-            with st.spinner("Tempo adjust kar rahe hain..."):
+            # Apply tempo change
+            if tempo_rate != 1.0:
                 processed_audio = change_tempo(processed_audio, sr, tempo_rate)
 
-        # Apply reverb
-        if reverb_intensity > 0:
-            with st.spinner("Reverb add kar rahe hain..."):
+            # Apply reverb
+            if reverb_intensity > 0:
                 processed_audio = apply_reverb(processed_audio, sr, reverb_intensity)
 
-        # Save processed audio
-        output_buffer = save_audio(processed_audio, sr)
+            # Apply equalizer
+            if bass_gain != 0 or treble_gain != 0:
+                processed_audio = apply_equalizer(processed_audio, sr, bass_gain, treble_gain)
 
-        # Play processed audio
-        st.audio(output_buffer, format='audio/wav')
-        st.write("Processed Audio ⬆️")
+            # Save processed audio
+            output_buffer = save_audio(processed_audio, sr)
 
-        # Download button
-        st.download_button(
-            label="Processed Audio Download Karo",
-            data=output_buffer,
-            file_name=f"processed_audio_{uuid.uuid4()}.wav",
-            mime="audio/wav"
-        )
+            # Display processed waveform
+            st.image(plot_waveform(processed_audio, sr, "Processed Audio Waveform"), use_column_width=True)
+            st.audio(output_buffer, format='audio/wav')
+            st.write("Processed Audio ⬆️")
+
+            # Download button
+            st.download_button(
+                label="Processed Audio Download Karo",
+                data=output_buffer,
+                file_name=f"processed_audio_{uuid.uuid4()}.wav",
+                mime="audio/wav"
+            )
 
 # Footer
 st.markdown("---")
-st.write("Made with ❤️ by xAI for audio lovers!")
+st.write("Made with ❤️ by xAI for audio enthusiasts!")
