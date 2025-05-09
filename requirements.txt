@@ -1,7 +1,2 @@
-# Requirements section
-with st.expander("Requirements to run this app"):
-    st.code("""
-    # requirements.txt
-    streamlit==1.24.0
-    numpy==1.24.3
-    """)
+streamlit==1.24.0
+numpy==1.24.3
