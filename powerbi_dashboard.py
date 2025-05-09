@@ -14,7 +14,7 @@ from scipy.io import wavfile
 # Suppress warnings
 warnings.filterwarnings("ignore")
 
-# Custom CSS for beautiful design
+# Minimal CSS for background and cards
 st.markdown("""
 <style>
 .stApp {
@@ -29,41 +29,26 @@ h1 {
     text-align: center;
     font-size: 2.5rem;
 }
-h3 {
-    color: #333;
-}
 .card {
     background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    padding: 20px;
-    margin: 15px 0;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
 }
 .stButton>button {
     background-color: #ff7f0e;
     color: white;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 1rem;
+    border-radius: 5px;
+    padding: 8px;
     width: 100%;
 }
 .stButton>button:hover {
     background-color: #1f77b4;
 }
-.stSlider label {
-    font-weight: bold;
-    color: #333;
-}
-.stFileUploader {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
-    padding: 10px;
-}
 .footer {
     text-align: center;
     color: rgba(255, 255, 255, 0.8);
-    margin-top: 30px;
-    font-size: 0.9rem;
+    margin-top: 20px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -165,9 +150,9 @@ def trim_audio(audio, sr, start_time, end_time):
 
 # Plot waveform
 def plot_waveform(audio, sr, title="Waveform"):
-    plt.figure(figsize=(10, 4))
+    plt.figure(figsize=(8, 3))
     librosa.display.waveshow(audio, sr=sr, color='#1f77b4')
-    plt.title(title, fontsize=14, fontweight='bold')
+    plt.title(title)
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
     buffer = io.BytesIO()
@@ -193,14 +178,13 @@ def apply_preset(audio, sr, preset):
     return audio
 
 # Streamlit App
-st.title("🎙️ Voice Editor - Professional Audio Studio")
-st.markdown('<div class="card"><h3 style="text-align: center;">Welcome to Audio Studio</h3><p style="color: #555; text-align: center;">Edit your naat, song, or podcast with professional effects!</p></div>', unsafe_allow_html=True)
+st.title("🎙️ Voice Editor")
+st.markdown('<div class="card"><p style="color: #555; text-align: center;">Edit your naat, song, or podcast!</p></div>', unsafe_allow_html=True)
 
 # File uploader
 with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("### Upload Audio")
-    uploaded_file = st.file_uploader("Apni audio file upload karo (WAV format)", type=["wav"], key="file_uploader")
+    uploaded_file = st.file_uploader("Upload Audio (WAV)", type=["wav"], key="file_uploader")
     st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file is not None:
@@ -212,38 +196,31 @@ if uploaded_file is not None:
     # Display original audio
     with st.container():
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("### Original Audio")
-        st.image(plot_waveform(audio, sr, "Original Audio Waveform"), use_column_width=True)
+        st.image(plot_waveform(audio, sr, "Original Audio"), use_column_width=True)
         st.audio(uploaded_file, format='audio/wav')
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Effect controls
     with st.container():
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("### Audio Effects")
-
-        # Presets
-        preset = st.selectbox("Select Preset", ["None", "Naat", "Song", "Podcast"], key="preset_select")
-
+        preset = st.selectbox("Preset", ["None", "Naat", "Song", "Podcast"], key="preset_select")
         col1, col2 = st.columns(2)
         with col1:
             noise_reduction = st.checkbox("Noise Reduction", value=True, key="noise_checkbox")
-            noise_intensity = st.slider("Noise Reduction Intensity", 0.1, 1.0, 0.5, 0.1, key="noise_slider")
-            pitch_steps = st.slider("Pitch Adjust (High/Low)", -5.0, 5.0, 0.0, 0.1, key="pitch_slider")
-            tempo_rate = st.slider("Tempo Adjust (Speed)", 0.5, 2.0, 1.0, 0.1, key="tempo_slider")
-
+            noise_intensity = st.slider("Noise Intensity", 0.1, 1.0, 0.5, 0.1, key="noise_slider")
+            pitch_steps = st.slider("Pitch", -5.0, 5.0, 0.0, 0.1, key="pitch_slider")
+            tempo_rate = st.slider("Tempo", 0.5, 2.0, 1.0, 0.1, key="tempo_slider")
         with col2:
-            reverb_intensity = st.slider("Reverb (Echo)", 0.0, 1.0, 0.0, 0.1, key="reverb_slider")
-            bass_gain = st.slider("Bass Boost", -0.5, 0.5, 0.0, 0.1, key="bass_slider")
-            treble_gain = st.slider("Treble Boost", -0.5, 0.5, 0.0, 0.1, key="treble_slider")
+            reverb_intensity = st.slider("Reverb", 0.0, 1.0, 0.0, 0.1, key="reverb_slider")
+            bass_gain = st.slider("Bass", -0.5, 0.5, 0.0, 0.1, key="bass_slider")
+            treble_gain = st.slider("Treble", -0.5, 0.5, 0.0, 0.1, key="treble_slider")
 
         # Trimming
-        st.markdown("### Trim Audio")
-        start_time = st.number_input("Start Time (seconds)", 0.0, float(len(audio)/sr), 0.0, 0.1, key="start_time")
-        end_time = st.number_input("End Time (seconds, 0 for end)", 0.0, float(len(audio)/sr), 0.0, 0.1, key="end_time")
+        start_time = st.number_input("Start Time (s)", 0.0, float(len(audio)/sr), 0.0, 0.1, key="start_time")
+        end_time = st.number_input("End Time (s, 0 for end)", 0.0, float(len(audio)/sr), 0.0, 0.1, key="end_time")
 
         # Compression
-        compression = st.checkbox("Compression (Balance Volume)", value=False, key="compression_checkbox")
+        compression = st.checkbox("Compression", value=False, key="compression_checkbox")
         compression_threshold = st.slider("Compression Threshold (dB)", -40.0, -10.0, -20.0, 1.0, key="compression_slider")
 
         st.markdown('</div>', unsafe_allow_html=True)
@@ -252,19 +229,18 @@ if uploaded_file is not None:
     with st.container():
         st.markdown('<div class="card">', unsafe_allow_html=True)
         export_format = st.selectbox("Export Format", ["WAV", "MP3"], key="export_format")
-        if st.button("🎵 Audio Process Karo", key="process_button", use_container_width=True):
-            with st.spinner("Processing audio..."):
+        if st.button("Process Audio", key="process_button", use_container_width=True):
+            with st.spinner("Processing..."):
                 processed_audio = audio.copy()
 
                 # Apply trimming
                 if start_time > 0 or end_time > 0:
                     processed_audio = trim_audio(processed_audio, sr, start_time, end_time)
 
-                # Apply preset if selected
+                # Apply preset or manual effects
                 if preset != "None":
                     processed_audio = apply_preset(processed_audio, sr, preset)
                 else:
-                    # Apply manual effects
                     if noise_reduction:
                         processed_audio = reduce_noise(processed_audio, sr, noise_intensity)
                     if pitch_steps != 0:
@@ -281,11 +257,10 @@ if uploaded_file is not None:
                 # Save audio
                 output_buffer = save_audio(processed_audio, sr, export_format.lower())
 
-                st.markdown("### Processed Audio")
-                st.image(plot_waveform(processed_audio, sr, "Processed Audio Waveform"), use_column_width=True)
+                st.image(plot_waveform(processed_audio, sr, "Processed Audio"), use_column_width=True)
                 st.audio(output_buffer, format=f'audio/{export_format.lower()}')
                 st.download_button(
-                    label="📥 Processed Audio Download Karo",
+                    label="Download Audio",
                     data=output_buffer,
                     file_name=f"processed_audio_{uuid.uuid4()}.{export_format.lower()}",
                     mime=f"audio/{export_format.lower()}",
@@ -295,4 +270,4 @@ if uploaded_file is not None:
         st.markdown('</div>', unsafe_allow_html=True)
 
 # Footer
-st.markdown('<div class="footer">Made with ❤️ by xAI for audio enthusiasts!</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Made by xAI</div>', unsafe_allow_html=True)
