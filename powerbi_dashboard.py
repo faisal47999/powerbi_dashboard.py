@@ -12,71 +12,64 @@ import warnings
 # Suppress warnings
 warnings.filterwarnings("ignore")
 
-# Custom CSS for beautiful design
+# Custom CSS for beautiful design and slider visibility
 st.markdown("""
 <style>
-body {
-    margin: 0;
-    font-family: 'Arial', sans-serif;
-}
 .stApp {
     background: linear-gradient(135deg, #1f77b4 0%, #ff7f0e 100%);
     color: white;
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    font-family: 'Arial', sans-serif;
 }
 h1 {
     text-align: center;
-    font-size: 3rem;
+    font-size: 2.5rem;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 h3 {
     color: #333;
-    margin-bottom: 10px;
 }
 .card {
     background: rgba(255, 255, 255, 0.95);
-    border-radius: 15px;
+    border-radius: 12px;
     padding: 20px;
-    margin: 20px 0;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    transition: transform 0.3s;
-}
-.card:hover {
-    transform: translateY(-5px);
+    margin: 15px 0;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
 }
 .stButton>button {
     background-color: #ff7f0e;
     color: white;
     border: none;
-    border-radius: 10px;
-    padding: 12px 24px;
-    font-size: 1.1rem;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 1rem;
     font-weight: bold;
     width: 100%;
-    transition: background-color 0.3s;
 }
 .stButton>button:hover {
     background-color: #1f77b4;
 }
-.stSlider .st-bx {
+.stSlider > div > div > div > div {
     background-color: #e6f3ff;
-    border-radius: 8px;
+    border-radius: 6px;
+    padding: 5px;
 }
 .stSlider label {
     font-weight: bold;
     color: #333;
+    font-size: 1rem;
 }
 .stFileUploader {
     background: rgba(255, 255, 255, 0.9);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 10px;
 }
 .footer {
     text-align: center;
     color: rgba(255, 255, 255, 0.8);
-    margin-top: 40px;
+    margin-top: 30px;
     font-size: 0.9rem;
 }
 </style>
@@ -163,12 +156,12 @@ def plot_waveform(audio, sr, title="Waveform"):
     return buffer
 
 # Streamlit App
-st.title("🎙️ Voice Editor - Professional Audio Studio")
+st.title("🎙️ Voice Editor - Audio Studio")
 st.markdown("""
 <div class="card">
-    <h3 style="color: #333; text-align: center;">Welcome to Audio Studio</h3>
+    <h3 style="text-align: center;">Welcome to Audio Studio</h3>
     <p style="color: #555; text-align: center;">
-        Upload your naat or song, apply effects with sliders, and download the processed audio!
+        Upload your naat or song and customize with professional effects!
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -194,22 +187,22 @@ if uploaded_file is not None:
         st.audio(uploaded_file, format='audio/wav')
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Effect controls
+    # Effect controls with sliders
     with st.container():
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown("### Audio Effects")
         col1, col2 = st.columns(2)
 
         with col1:
-            noise_reduction = st.checkbox("Noise Reduction (Background Noise Hatao)", value=True)
-            noise_intensity = st.slider("Noise Reduction Intensity", 0.1, 1.0, 0.5, 0.1)
-            pitch_steps = st.slider("Pitch Adjust (High/Low Voice)", -5.0, 5.0, 0.0, 0.1)
-            tempo_rate = st.slider("Tempo Adjust (Speed)", 0.5, 2.0, 1.0, 0.1)
+            noise_reduction = st.checkbox("Noise Reduction", value=True)
+            noise_intensity = st.slider("Noise Reduction Intensity", min_value=0.1, max_value=1.0, value=0.5, step=0.1)
+            pitch_steps = st.slider("Pitch Adjust (High/Low)", min_value=-5.0, max_value=5.0, value=0.0, step=0.1)
+            tempo_rate = st.slider("Tempo Adjust (Speed)", min_value=0.5, max_value=2.0, value=1.0, step=0.1)
 
         with col2:
-            reverb_intensity = st.slider("Reverb (Echo Effect)", 0.0, 1.0, 0.0, 0.1)
-            bass_gain = st.slider("Bass Boost", -0.5, 0.5, 0.0, 0.1)
-            treble_gain = st.slider("Treble Boost", -0.5, 0.5, 0.0, 0.1)
+            reverb_intensity = st.slider("Reverb (Echo)", min_value=0.0, max_value=1.0, value=0.0, step=0.1)
+            bass_gain = st.slider("Bass Boost", min_value=-0.5, max_value=0.5, value=0.0, step=0.1)
+            treble_gain = st.slider("Treble Boost", min_value=-0.5, max_value=0.5, value=0.0, step=0.1)
 
         st.markdown('</div>', unsafe_allow_html=True)
 
