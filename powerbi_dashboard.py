@@ -12,7 +12,7 @@ import warnings
 # Suppress warnings
 warnings.filterwarnings("ignore")
 
-# Custom CSS for beautiful design and slider visibility
+# Minimal CSS for background and cards
 st.markdown("""
 <style>
 .stApp {
@@ -26,7 +26,6 @@ st.markdown("""
 h1 {
     text-align: center;
     font-size: 2.5rem;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 h3 {
     color: #333;
@@ -41,30 +40,13 @@ h3 {
 .stButton>button {
     background-color: #ff7f0e;
     color: white;
-    border: none;
     border-radius: 8px;
     padding: 10px;
     font-size: 1rem;
-    font-weight: bold;
     width: 100%;
 }
 .stButton>button:hover {
     background-color: #1f77b4;
-}
-.stSlider > div > div > div > div {
-    background-color: #e6f3ff;
-    border-radius: 6px;
-    padding: 5px;
-}
-.stSlider label {
-    font-weight: bold;
-    color: #333;
-    font-size: 1rem;
-}
-.stFileUploader {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
-    padding: 10px;
 }
 .footer {
     text-align: center;
@@ -157,20 +139,13 @@ def plot_waveform(audio, sr, title="Waveform"):
 
 # Streamlit App
 st.title("🎙️ Voice Editor - Audio Studio")
-st.markdown("""
-<div class="card">
-    <h3 style="text-align: center;">Welcome to Audio Studio</h3>
-    <p style="color: #555; text-align: center;">
-        Upload your naat or song and customize with professional effects!
-    </p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="card"><h3 style="text-align: center;">Welcome to Audio Studio</h3><p style="color: #555; text-align: center;">Upload your naat or song and customize with effects!</p></div>', unsafe_allow_html=True)
 
 # File uploader
 with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown("### Upload Audio")
-    uploaded_file = st.file_uploader("🎙️ Apni audio file upload karo (WAV format)", type=["wav"], label_visibility="collapsed")
+    uploaded_file = st.file_uploader("Apni audio file upload karo (WAV format)", type=["wav"], key="file_uploader")
     st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file is not None:
@@ -194,22 +169,22 @@ if uploaded_file is not None:
         col1, col2 = st.columns(2)
 
         with col1:
-            noise_reduction = st.checkbox("Noise Reduction", value=True)
-            noise_intensity = st.slider("Noise Reduction Intensity", min_value=0.1, max_value=1.0, value=0.5, step=0.1)
-            pitch_steps = st.slider("Pitch Adjust (High/Low)", min_value=-5.0, max_value=5.0, value=0.0, step=0.1)
-            tempo_rate = st.slider("Tempo Adjust (Speed)", min_value=0.5, max_value=2.0, value=1.0, step=0.1)
+            noise_reduction = st.checkbox("Noise Reduction", value=True, key="noise_checkbox")
+            noise_intensity = st.slider("Noise Reduction Intensity", min_value=0.1, max_value=1.0, value=0.5, step=0.1, key="noise_slider")
+            pitch_steps = st.slider("Pitch Adjust (High/Low)", min_value=-5.0, max_value=5.0, value=0.0, step=0.1, key="pitch_slider")
+            tempo_rate = st.slider("Tempo Adjust (Speed)", min_value=0.5, max_value=2.0, value=1.0, step=0.1, key="tempo_slider")
 
         with col2:
-            reverb_intensity = st.slider("Reverb (Echo)", min_value=0.0, max_value=1.0, value=0.0, step=0.1)
-            bass_gain = st.slider("Bass Boost", min_value=-0.5, max_value=0.5, value=0.0, step=0.1)
-            treble_gain = st.slider("Treble Boost", min_value=-0.5, max_value=0.5, value=0.0, step=0.1)
+            reverb_intensity = st.slider("Reverb (Echo)", min_value=0.0, max_value=1.0, value=0.0, step=0.1, key="reverb_slider")
+            bass_gain = st.slider("Bass Boost", min_value=-0.5, max_value=0.5, value=0.0, step=0.1, key="bass_slider")
+            treble_gain = st.slider("Treble Boost", min_value=-0.5, max_value=0.5, value=0.0, step=0.1, key="treble_slider")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Process button
     with st.container():
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        if st.button("🎵 Audio Process Karo", use_container_width=True):
+        if st.button("🎵 Audio Process Karo", key="process_button", use_container_width=True):
             with st.spinner("Processing audio..."):
                 processed_audio = audio.copy()
 
@@ -234,6 +209,7 @@ if uploaded_file is not None:
                     data=output_buffer,
                     file_name=f"processed_audio_{uuid.uuid4()}.wav",
                     mime="audio/wav",
+                    key="download_button",
                     use_container_width=True
                 )
         st.markdown('</div>', unsafe_allow_html=True)
