@@ -1,6 +1,7 @@
-streamlit
+streamlit==1.24.1
+numpy>=1.21.0
 librosa
+noisereduce==2.0.1
+sounddevice
+pydub
 soundfile
-noisereduce
-numpy
-scipy
