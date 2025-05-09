@@ -310,3 +310,15 @@ with st.expander("About this AI Voice Editor"):
     
     The current version demonstrates the UI and basic audio processing capabilities that could be integrated with more advanced AI models.
     """)
+
+# Requirements section
+with st.expander("Requirements to run this app"):
+    st.code("""
+    # requirements.txt
+    streamlit==1.24.0
+    numpy==1.24.3
+    librosa==0.10.0
+    matplotlib==3.7.1
+    soundfile==0.12.1
+    scipy==1.10.1
+    """)
