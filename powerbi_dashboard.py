@@ -1,8 +1,5 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
-import io
-import base64
 import time
 
 # Set the page configuration
@@ -61,8 +58,6 @@ st.subheader("Transform your voice with AI-powered effects")
 # Initialize session state variables
 if 'audio_data' not in st.session_state:
     st.session_state.audio_data = None
-if 'sample_rate' not in st.session_state:
-    st.session_state.sample_rate = 22050
 if 'processed_audio' not in st.session_state:
     st.session_state.processed_audio = None
 if 'processing' not in st.session_state:
@@ -135,33 +130,20 @@ def apply_ai_voice_enhancement(audio_data):
     enhanced = enhanced * 1.2
     return np.clip(enhanced, -1, 1)
 
-# Function to display audio waveform
+# Function to display audio waveform using Streamlit's native chart
 def display_audio_visualization(audio_data):
-    fig, ax = plt.subplots(figsize=(10, 4))
+    # Only show a portion of the audio data to keep the chart responsive
+    sample_size = min(len(audio_data), 1000)
+    sample_indices = np.linspace(0, len(audio_data)-1, sample_size, dtype=int)
     
-    # Calculate time axis
-    time = np.linspace(0, len(audio_data)/22050, len(audio_data))
+    # Create a dataframe for the chart
+    chart_data = {
+        'Time': np.linspace(0, len(audio_data)/22050, sample_size),
+        'Amplitude': audio_data[sample_indices]
+    }
     
-    # Display waveform
-    ax.plot(time, audio_data, color='#00bf72')
-    ax.set_title('Audio Waveform')
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel('Amplitude')
-    
-    # Set limits
-    ax.set_ylim(-1.1, 1.1)
-    
-    # Make the plot background transparent to match the Streamlit theme
-    fig.patch.set_alpha(0.0)
-    ax.patch.set_alpha(0.3)
-    
-    # Change text colors to be visible against dark background
-    ax.tick_params(colors='white')
-    ax.xaxis.label.set_color('white')
-    ax.yaxis.label.set_color('white')
-    ax.title.set_color('white')
-    
-    st.pyplot(fig)
+    # Display the waveform using Streamlit's line chart
+    st.line_chart(chart_data, x='Time', y='Amplitude', height=300)
 
 # Function to generate demo audio
 def generate_demo_audio(duration=3, type="voice"):
@@ -170,7 +152,7 @@ def generate_demo_audio(duration=3, type="voice"):
     if type == "voice":
         # Generate a sample voice-like signal
         fundamental = 120  # fundamental frequency for voice
-        audio = 0.0
+        audio = np.zeros_like(t)
         
         # Add harmonics to simulate voice
         for i in range(1, 6):
@@ -210,24 +192,26 @@ def generate_demo_audio(duration=3, type="voice"):
         segment = len(t) // 4
         for i, note in enumerate(notes):
             start = i * segment
-            end = (i + 1) * segment
+            end = min((i + 1) * segment, len(t))
             audio[start:end] += 0.5 * np.sin(2 * np.pi * note * t[start:end])
         
         # Add some harmonics
         for i, note in enumerate(notes):
             start = i * segment
-            end = (i + 1) * segment
+            end = min((i + 1) * segment, len(t))
             audio[start:end] += 0.25 * np.sin(2 * np.pi * 2 * note * t[start:end])
         
         # Add envelope
         envelope = np.ones_like(audio)
         for i in range(4):
             start = i * segment
-            end = (i + 1) * segment
+            end = min((i + 1) * segment, len(t))
             attack = int(0.1 * segment)
             release = int(0.3 * segment)
-            envelope[start:start+attack] = np.linspace(0, 1, attack)
-            envelope[end-release:end] = np.linspace(1, 0, release)
+            if start + attack < len(envelope):
+                envelope[start:start+attack] = np.linspace(0, 1, attack)
+            if end - release > 0 and end <= len(envelope):
+                envelope[end-release:end] = np.linspace(1, 0, release)
         
         audio *= envelope
         audio = np.clip(audio, -1, 1)
@@ -321,9 +305,10 @@ with st.sidebar:
         elif effect_option == "AI Enhancement":
             if st.button("Apply AI Enhancement"):
                 st.session_state.current_effect = "AI Enhancement"
-                st.session_state.processed_audio = apply_ai_voice_enhancement(
-                    st.session_state.audio_data
-                )
+                with st.spinner("Applying AI voice enhancement..."):
+                    st.session_state.processed_audio = apply_ai_voice_enhancement(
+                        st.session_state.audio_data
+                    )
         
         # Reset button
         if st.button("Reset to Original"):
@@ -416,11 +401,3 @@ with st.expander("About this AI Voice Editor"):
     The current version demonstrates the UI and simulates basic audio processing capabilities that would typically be integrated with more advanced AI models.
     """)
 
-# Requirements section
-with st.expander("Requirements to run this app"):
-    st.code("""
-    # requirements.txt
-    streamlit==1.24.0
-    numpy==1.24.3
-    matplotlib==3.7.1
-    """)
